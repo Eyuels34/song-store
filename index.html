@@ -45,7 +45,6 @@
             overflow-x: hidden;
         }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -61,7 +60,6 @@
             background: #475569;
         }
 
-        /* Glassmorphism effects */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
@@ -76,7 +74,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Audio Visualizer Bars */
         .bar {
             width: 3px;
             background: linear-gradient(to top, #6366f1, #a855f7);
@@ -99,7 +96,6 @@
             opacity: 0.5;
         }
         
-        /* Range slider styling */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -124,6 +120,9 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col pb-32">
+
+    <!-- HIDDEN FILE INPUT FOR CUSTOM AUDIO UPLOADS -->
+    <input type="file" id="global-audio-uploader" accept="audio/*" class="hidden" onchange="handleFileSelect(event)">
 
     <header class="sticky top-0 z-40 glass-nav transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -159,10 +158,17 @@
                     </button>
                 </nav>
 
-                <!-- Search Bar -->
-                <div class="relative w-48 sm:w-64">
-                    <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="Search songs, artists..." class="w-full bg-slate-800/80 text-xs sm:text-sm text-slate-200 pl-9 pr-4 py-2 rounded-full border border-slate-700/60 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs sm:text-sm"></i>
+                <!-- Search Bar & Upload Button -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="triggerAudioUpload()" class="hidden sm:flex items-center space-x-2 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-full shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload Track</span>
+                    </button>
+
+                    <div class="relative w-36 sm:w-56">
+                        <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="Search songs..." class="w-full bg-slate-800/80 text-xs sm:text-sm text-slate-200 pl-9 pr-4 py-2 rounded-full border border-slate-700/60 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs sm:text-sm"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -178,8 +184,8 @@
             <button onclick="switchTab('favorites')" class="flex flex-col items-center text-slate-400 py-1">
                 <i class="fa-solid fa-heart mb-1 text-sm text-rose-400"></i>Favorites
             </button>
-            <button onclick="switchTab('playlists')" class="flex flex-col items-center text-slate-400 py-1">
-                <i class="fa-solid fa-list-ul mb-1 text-sm text-purple-400"></i>Playlists
+            <button onclick="triggerAudioUpload()" class="flex flex-col items-center text-emerald-400 py-1">
+                <i class="fa-solid fa-cloud-arrow-up mb-1 text-sm"></i>Upload
             </button>
         </div>
     </header>
@@ -201,15 +207,15 @@
                             <i class="fa-solid fa-fire mr-1"></i> Featured Track of the Week
                         </span>
                         <h1 class="text-3xl sm:text-5xl font-extrabold text-white leading-tight">Neon Horizons</h1>
-                        <p class="text-slate-300 text-sm sm:text-base">Experience synthetic synthwave soundscapes created on-the-fly. Listen, download for offline access, and keep full ownership of your sound.</p>
+                        <p class="text-slate-300 text-sm sm:text-base">Experience synthetic synthwave soundscapes created on-the-fly. Listen, upload your own MP3s, download for offline access, and keep full ownership of your sound.</p>
                         <div class="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
                             <button onclick="playTrack(1)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold hover:shadow-lg hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all flex items-center space-x-2">
                                 <i class="fa-solid fa-play"></i>
                                 <span>Play Preview</span>
                             </button>
-                            <button onclick="downloadTrack(1)" class="px-6 py-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-600/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-2">
-                                <i class="fa-solid fa-download text-emerald-400"></i>
-                                <span>Download (.WAV)</span>
+                            <button onclick="triggerAudioUpload()" class="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold hover:scale-105 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-emerald-500/20">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Upload Audio File</span>
                             </button>
                         </div>
                     </div>
@@ -329,6 +335,9 @@
 
     <!-- PERSISTENT AUDIO PLAYER BAR -->
     <div class="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-700/80 shadow-2xl px-4 py-3">
+        <!-- Hidden Standard HTML5 Audio Element for Direct File Playback -->
+        <audio id="native-audio-element" class="hidden"></audio>
+
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
             
             <!-- Song Meta & Artwork -->
@@ -379,7 +388,6 @@
 
             <!-- Volume & Extra Tools -->
             <div class="hidden md:flex items-center justify-end space-x-4 w-1/4">
-                <!-- Visualizer bars -->
                 <div id="visualizer-bars" class="flex items-end space-x-0.5 h-6 px-2 paused-animation" title="Audio Visualizer">
                     <div class="bar"></div>
                     <div class="bar"></div>
@@ -392,7 +400,6 @@
                     <i class="fa-solid fa-download"></i>
                 </button>
 
-                <!-- Volume Slider -->
                 <div class="flex items-center space-x-2">
                     <button onclick="toggleMute()" class="text-slate-400 hover:text-slate-200 text-sm">
                         <i id="volume-icon" class="fa-solid fa-volume-high"></i>
@@ -470,9 +477,10 @@
                 title: "Neon Horizons",
                 artist: "CyberPulse",
                 genre: "Electronic",
-                duration: 180, // seconds
+                duration: 180,
                 price: "Free",
                 cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 120,
                 baseFreq: 220,
                 synthType: 'sawtooth'
@@ -485,6 +493,7 @@
                 duration: 150,
                 price: "Free",
                 cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 85,
                 baseFreq: 174,
                 synthType: 'sine'
@@ -497,6 +506,7 @@
                 duration: 210,
                 price: "$0.99",
                 cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 70,
                 baseFreq: 130,
                 synthType: 'triangle'
@@ -509,6 +519,7 @@
                 duration: 165,
                 price: "Free",
                 cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 128,
                 baseFreq: 261,
                 synthType: 'square'
@@ -521,6 +532,7 @@
                 duration: 195,
                 price: "Free",
                 cover: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 95,
                 baseFreq: 196,
                 synthType: 'sine'
@@ -533,78 +545,15 @@
                 duration: 220,
                 price: "$1.29",
                 cover: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=600&q=80",
+                url: null,
                 bpm: 105,
                 baseFreq: 246,
                 synthType: 'triangle'
-            },
-            {
-                id: 7,
-                title: "Thunder Rift",
-                artist: "Iron Echo",
-                genre: "Rock",
-                duration: 175,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&w=600&q=80",
-                bpm: 140,
-                baseFreq: 146,
-                synthType: 'sawtooth'
-            },
-            {
-                id: 8,
-                title: "Urban Echoes",
-                artist: "Metro Flow",
-                genre: "Hip-Hop",
-                duration: 160,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80",
-                bpm: 90,
-                baseFreq: 110,
-                synthType: 'square'
-            },
-              {
-    id: 9,
-    title: "My Original Song",
-    artist: "Your Artist Name",
-    album: "Single",
-    duration: "3:45",
-    price: "$0.99",
-    genre: "Electronic",
-    // Link to the audio file uploaded in step 1
-    url: libe-yawkewal.mp3, 
-    // Link to your cover image file or an external URL
-    cover: "audio/cover1.jpg" 
-  },
+            }
         ];
-        const SONG = [
-  {
-    id: 1,
-    title: "My Original Song",
-    artist: "Your Artist Name",
-    album: "Single",
-    duration: "3:45",
-    price: "$0.99",
-    genre: "Electronic",
-    // Link to the audio file uploaded in step 1
-    url: "libe-yawkewal.mp3", 
-    // Link to your cover image file or an external URL
-    cover: "audio/cover1.jpg" 
-  },
-  {
-    id: 2,
-    title: "Another Track",
-    artist: "Your Artist Name",
-    album: "Album Name",
-    duration: "4:12",
-    price: "Free",
-    genre: "Pop",
-    url: "audio/song2.mp3",
-    cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300"
-  }
-];
 
-        const GENRES = ["All", "Electronic", "Lo-Fi", "Ambient", "Pop", "Acoustic", "Jazz", "Rock", "Hip-Hop"];
+        const GENRES = ["All", "Electronic", "Lo-Fi", "Ambient", "Pop", "Acoustic", "Jazz", "Custom Uploads"];
 
-        // Application State
         let currentActiveTab = 'store';
         let selectedGenre = 'All';
         let searchQuery = '';
@@ -620,7 +569,7 @@
         let playlists = JSON.parse(localStorage.getItem('sw_playlists') || '[{"id": 1, "name": "Favorites Mix", "songs": [1, 2]}]');
 
         /* ----------------------------------------------------
-           2. WEB AUDIO SYNTHESIZER ENGINE (Procedural Audio)
+           2. AUDIO PLAYBACK & SYNTHESIZER ENGINE
         ---------------------------------------------------- */
         let audioCtx = null;
         let currentSourceNode = null;
@@ -628,6 +577,7 @@
         let playbackStartTime = 0;
         let playbackOffset = 0;
         let timerInterval = null;
+        let nativeAudio = null;
 
         function initAudioContext() {
             if (!audioCtx) {
@@ -637,9 +587,47 @@
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+            if (!nativeAudio) {
+                nativeAudio = document.getElementById('native-audio-element');
+                nativeAudio.addEventListener('ended', () => {
+                    if (isLoop) {
+                        startPlayback(0);
+                    } else {
+                        playNextTrack();
+                    }
+                });
+            }
         }
 
-        // Generates an AudioBuffer programmatically for seamless royalty-free audio!
+        function triggerAudioUpload() {
+            document.getElementById('global-audio-uploader').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const objectUrl = URL.createObjectURL(file);
+            const cleanName = file.name.replace(/\.[^/.]+$/, "");
+
+            const newTrack = {
+                id: Date.now(),
+                title: cleanName,
+                artist: "Custom Upload",
+                genre: "Custom Uploads",
+                duration: 180,
+                price: "User Track",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80",
+                url: objectUrl,
+                isFileUpload: true
+            };
+
+            SONG_STORE.unshift(newTrack);
+            renderStoreGrid();
+            showToast(`Uploaded "${cleanName}" successfully!`, 'success');
+            playTrack(newTrack.id);
+        }
+
         function createProceduralAudioBuffer(track) {
             initAudioContext();
             const sampleRate = audioCtx.sampleRate;
@@ -653,7 +641,6 @@
             const beatDuration = 60 / bpm;
             const baseFreq = track.baseFreq || 220;
 
-            // Musical scales (Penta minor)
             const scale = [1, 1.2, 1.334, 1.5, 1.782, 2];
 
             for (let i = 0; i < buffer.length; i++) {
@@ -661,7 +648,6 @@
                 const beat = Math.floor(t / beatDuration);
                 const beatProgress = (t % beatDuration) / beatDuration;
 
-                // Melody oscillator synthesis
                 const noteIndex = (beat * 3 + Math.floor(beat / 4)) % scale.length;
                 const freq = baseFreq * scale[noteIndex];
                 
@@ -672,20 +658,16 @@
                     synthVal = Math.sin(2 * Math.PI * freq * t) >= 0 ? 0.4 : -0.4;
                 } else if (track.synthType === 'triangle') {
                     synthVal = Math.asin(Math.sin(2 * Math.PI * freq * t)) * (2 / Math.PI);
-                } else { // sine
+                } else {
                     synthVal = Math.sin(2 * Math.PI * freq * t);
                 }
 
-                // Envelope decay for musicality
                 const envelope = Math.exp(-beatProgress * 3);
-                
-                // Beat Kick Drum overlay
                 const kickEnv = Math.exp(-beatProgress * 15);
                 const kick = Math.sin(2 * Math.PI * 60 * (1 - beatProgress) * t) * kickEnv * 0.5;
 
                 const sample = (synthVal * envelope * 0.2) + (kick * 0.3);
 
-                // Stereo distribution
                 leftChannel[i] = sample + Math.sin(t * 0.5) * 0.05;
                 rightChannel[i] = sample + Math.cos(t * 0.5) * 0.05;
             }
@@ -709,34 +691,43 @@
             stopCurrentAudio();
 
             const track = SONG_STORE[currentTrackIndex];
-            const buffer = createProceduralAudioBuffer(track);
 
-            currentSourceNode = audioCtx.createBufferSource();
-            currentSourceNode.buffer = buffer;
+            if (track.url) {
+                nativeAudio.src = track.url;
+                nativeAudio.volume = volume;
+                nativeAudio.currentTime = offset;
+                nativeAudio.play();
+                isPlaying = true;
+            } else {
+                const buffer = createProceduralAudioBuffer(track);
+                currentSourceNode = audioCtx.createBufferSource();
+                currentSourceNode.buffer = buffer;
 
-            gainNode = audioCtx.createGain();
-            gainNode.gain.value = volume;
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = volume;
 
-            currentSourceNode.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+                currentSourceNode.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
 
-            currentSourceNode.start(0, offset);
-            playbackStartTime = audioCtx.currentTime - offset;
-            playbackOffset = offset;
+                currentSourceNode.start(0, offset);
+                playbackStartTime = audioCtx.currentTime - offset;
+                playbackOffset = offset;
 
-            isPlaying = true;
+                isPlaying = true;
+
+                currentSourceNode.onended = () => {
+                    if (isPlaying && (audioCtx.currentTime - playbackStartTime) >= track.duration) {
+                        if (isLoop) {
+                            startPlayback(0);
+                        } else {
+                            playNextTrack();
+                        }
+                    }
+                };
+            }
+
             updatePlayerUI();
             startTimer();
-
-            currentSourceNode.onended = () => {
-                if (isPlaying && (audioCtx.currentTime - playbackStartTime) >= track.duration) {
-                    if (isLoop) {
-                        startPlayback(0);
-                    } else {
-                        playNextTrack();
-                    }
-                }
-            };
         }
 
         function stopCurrentAudio() {
@@ -747,20 +738,32 @@
                 } catch(e){}
                 currentSourceNode = null;
             }
+            if (nativeAudio) {
+                nativeAudio.pause();
+            }
             if (timerInterval) clearInterval(timerInterval);
         }
 
         function togglePlay() {
+            const track = SONG_STORE[currentTrackIndex];
+
             if (!isPlaying) {
-                if (!currentSourceNode) {
-                    startPlayback(playbackOffset);
-                } else {
-                    audioCtx.resume();
+                if (track.url) {
+                    nativeAudio.play();
                     isPlaying = true;
-                    startTimer();
+                } else {
+                    if (!currentSourceNode) {
+                        startPlayback(playbackOffset);
+                    } else {
+                        audioCtx.resume();
+                        isPlaying = true;
+                    }
                 }
+                startTimer();
             } else {
-                if (audioCtx) {
+                if (track.url) {
+                    nativeAudio.pause();
+                } else if (audioCtx) {
                     playbackOffset = audioCtx.currentTime - playbackStartTime;
                     audioCtx.suspend();
                 }
@@ -786,12 +789,18 @@
 
         function handleSeek(percent) {
             const track = SONG_STORE[currentTrackIndex];
-            const targetTime = (percent / 100) * track.duration;
-            if (isPlaying) {
-                startPlayback(targetTime);
+            const targetDuration = track.url ? nativeAudio.duration || track.duration : track.duration;
+            const targetTime = (percent / 100) * targetDuration;
+
+            if (track.url) {
+                nativeAudio.currentTime = targetTime;
             } else {
-                playbackOffset = targetTime;
-                document.getElementById('time-current').innerText = formatTime(targetTime);
+                if (isPlaying) {
+                    startPlayback(targetTime);
+                } else {
+                    playbackOffset = targetTime;
+                    document.getElementById('time-current').innerText = formatTime(targetTime);
+                }
             }
         }
 
@@ -799,6 +808,9 @@
             volume = parseFloat(val);
             if (gainNode) {
                 gainNode.gain.value = volume;
+            }
+            if (nativeAudio) {
+                nativeAudio.volume = volume;
             }
             const icon = document.getElementById('volume-icon');
             if (volume === 0) icon.className = "fa-solid fa-volume-xmark";
@@ -832,56 +844,70 @@
         function startTimer() {
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                if (isPlaying && audioCtx) {
-                    const elapsed = audioCtx.currentTime - playbackStartTime;
+                if (isPlaying) {
                     const track = SONG_STORE[currentTrackIndex];
-                    if (elapsed <= track.duration) {
+                    let elapsed = 0;
+                    let dur = track.duration;
+
+                    if (track.url && nativeAudio) {
+                        elapsed = nativeAudio.currentTime;
+                        dur = nativeAudio.duration || track.duration;
+                    } else if (audioCtx) {
+                        elapsed = audioCtx.currentTime - playbackStartTime;
+                    }
+
+                    if (elapsed <= dur) {
                         document.getElementById('time-current').innerText = formatTime(elapsed);
-                        document.getElementById('time-duration').innerText = formatTime(track.duration);
-                        document.getElementById('seek-bar').value = (elapsed / track.duration) * 100;
+                        document.getElementById('time-duration').innerText = formatTime(dur);
+                        document.getElementById('seek-bar').value = (elapsed / dur) * 100;
                     }
                 }
             }, 500);
         }
 
         function formatTime(secs) {
+            if (isNaN(secs)) return "0:00";
             const m = Math.floor(secs / 60);
             const s = Math.floor(secs % 60);
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
         /* ----------------------------------------------------
-           4. REAL OFFLINE DOWNLOAD ENGINE (.WAV GENERATOR)
+           4. DOWNLOAD & EXPORT ENGINE
         ---------------------------------------------------- */
         function downloadTrack(trackId) {
             const track = SONG_STORE.find(s => s.id === trackId);
             if (!track) return;
 
-            showToast(`Generating WAV file for "${track.title}"...`);
-
-            setTimeout(() => {
-                initAudioContext();
-                const buffer = createProceduralAudioBuffer(track);
-                const wavBlob = audioBufferToWavBlob(buffer);
-
-                // Create automatic download link
-                const url = URL.createObjectURL(wavBlob);
+            if (track.url) {
                 const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = `${track.artist} - ${track.title}.wav`;
+                anchor.href = track.url;
+                anchor.download = `${track.artist} - ${track.title}.mp3`;
                 anchor.click();
-                URL.revokeObjectURL(url);
+            } else {
+                showToast(`Generating WAV file for "${track.title}"...`);
+                setTimeout(() => {
+                    initAudioContext();
+                    const buffer = createProceduralAudioBuffer(track);
+                    const wavBlob = audioBufferToWavBlob(buffer);
 
-                // Save to Offline Storage List
-                if (!offlineTracks.includes(track.id)) {
-                    offlineTracks.push(track.id);
-                    localStorage.setItem('sw_offline', JSON.stringify(offlineTracks));
-                    renderOfflineSongs();
-                    updateBadgeCount();
-                }
+                    const url = URL.createObjectURL(wavBlob);
+                    const anchor = document.createElement('a');
+                    anchor.href = url;
+                    anchor.download = `${track.artist} - ${track.title}.wav`;
+                    anchor.click();
+                    URL.revokeObjectURL(url);
+                }, 300);
+            }
 
-                showToast(`Downloaded "${track.title}" for offline playback!`, 'success');
-            }, 300);
+            if (!offlineTracks.includes(track.id)) {
+                offlineTracks.push(track.id);
+                localStorage.setItem('sw_offline', JSON.stringify(offlineTracks));
+                renderOfflineSongs();
+                updateBadgeCount();
+            }
+
+            showToast(`Downloaded "${track.title}" for offline playback!`, 'success');
         }
 
         function downloadCurrentTrack() {
@@ -889,48 +915,36 @@
             downloadTrack(track.id);
         }
 
-        // Encodes AudioBuffer into standard RIFF WAV format
         function audioBufferToWavBlob(buffer) {
             const numOfChan = buffer.numberOfChannels;
             const length = buffer.length * numOfChan * 2 + 44;
             const outBuffer = new DataView(new ArrayBuffer(length));
             const channels = [];
             let sample = 0;
-            let offset = 0;
             let pos = 0;
 
-            function setUint16(data) {
-                outBuffer.setUint16(pos, data, true);
-                pos += 2;
-            }
-            function setUint32(data) {
-                outBuffer.setUint32(pos, data, true);
-                pos += 4;
-            }
+            function setUint16(data) { outBuffer.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { outBuffer.setUint32(pos, data, true); pos += 4; }
 
-            // RIFF chunk descriptor
-            setUint32(0x46464952); // "RIFF"
-            setUint32(length - 8); // file length - 8
-            setUint32(0x45564157); // "WAVE"
-
-            // FMT sub-chunk
-            setUint32(0x20746d66); // "fmt "
-            setUint32(16); // SubChunk1Size
-            setUint16(1); // AudioFormat (1 = PCM)
+            setUint32(0x46464952);
+            setUint32(length - 8);
+            setUint32(0x45564157);
+            setUint32(0x20746d66);
+            setUint32(16);
+            setUint16(1);
             setUint16(numOfChan);
             setUint32(buffer.sampleRate);
-            setUint32(buffer.sampleRate * 2 * numOfChan); // ByteRate
-            setUint16(numOfChan * 2); // BlockAlign
-            setUint16(16); // BitsPerSample
-
-            // DATA sub-chunk
-            setUint32(0x61746164); // "data"
+            setUint32(buffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            setUint32(0x61746164);
             setUint32(length - pos - 4);
 
             for (let i = 0; i < buffer.numberOfChannels; i++) {
                 channels.push(buffer.getChannelData(i));
             }
 
+            let offset = 0;
             while (offset < buffer.length) {
                 for (let i = 0; i < numOfChan; i++) {
                     sample = Math.max(-1, Math.min(1, channels[i][offset]));
@@ -952,7 +966,6 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-            // Reset navigation styles
             ['store', 'offline', 'favorites', 'playlists'].forEach(t => {
                 const btn = document.getElementById(`nav-${t}`);
                 if (btn) {
@@ -1027,14 +1040,12 @@
                         <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-slate-800">
                             <img src="${song.cover}" alt="${song.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300">
                             
-                            <!-- Overlay Play Button -->
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                                 <button onclick="playTrack(${song.id})" class="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 active:scale-95 transition-all">
                                     <i class="fa-solid ${isCurrentPlaying ? 'fa-pause' : 'fa-play'} ml-0.5"></i>
                                 </button>
                             </div>
 
-                            <!-- Badges -->
                             <div class="absolute top-2 left-2 flex space-x-1">
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-900/80 text-indigo-300 border border-slate-700 backdrop-blur-md">
                                     ${song.genre}
@@ -1073,7 +1084,7 @@
         }
 
         /* ----------------------------------------------------
-           6. OFFLINE, FAVORITES & PLAYLIST LOGIC
+           6. FAVORITES, OFFLINE & PLAYLISTS
         ---------------------------------------------------- */
         function toggleFavorite(id) {
             if (favorites.includes(id)) {
@@ -1142,7 +1153,6 @@
             }
         }
 
-        // Playlist Modals & Handlers
         function renderPlaylists() {
             const container = document.getElementById('playlists-list');
             container.innerHTML = playlists.map(pl => `
@@ -1190,7 +1200,7 @@
             playlists.push({
                 id: Date.now(),
                 name: name,
-                songs: [1, 3] // Default initial sample songs
+                songs: [1, 3]
             });
 
             localStorage.setItem('sw_playlists', JSON.stringify(playlists));
@@ -1201,7 +1211,7 @@
         }
 
         /* ----------------------------------------------------
-           7. PLAYER UI & EXPANDED MODAL LOGIC
+           7. PLAYER UI & EXPANDED MODAL
         ---------------------------------------------------- */
         function updatePlayerUI() {
             const track = SONG_STORE[currentTrackIndex];
@@ -1225,7 +1235,6 @@
                 vizBars.classList.add('paused-animation');
             }
 
-            // Update heart state
             const isFav = favorites.includes(track.id);
             const favIcon = `<i class="fa-${isFav ? 'solid text-rose-500' : 'regular'} fa-heart"></i>`;
             document.getElementById('player-fav-btn').innerHTML = favIcon;
@@ -1243,7 +1252,7 @@
         }
 
         /* ----------------------------------------------------
-           8. TOAST NOTIFICATION UTILITY
+           8. TOAST NOTIFICATIONS
         ---------------------------------------------------- */
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
