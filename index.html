@@ -1,1291 +1,209 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundWave - Music Store & Offline Player</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f3ff',
-                            100: '#e4e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            glow: '#a855f7'
-                        },
-                        dark: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            cardHover: '#334155',
-                            border: '#334155'
-                        }
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'bounce-subtle': 'bounce 2s infinite'
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0b0f19;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .bar {
-            width: 3px;
-            background: linear-gradient(to top, #6366f1, #a855f7);
-            border-radius: 3px;
-            animation: soundWave 1.2s ease-in-out infinite alternate;
-        }
-        .bar:nth-child(1) { animation-delay: 0.1s; height: 12px; }
-        .bar:nth-child(2) { animation-delay: 0.3s; height: 24px; }
-        .bar:nth-child(3) { animation-delay: 0.2s; height: 18px; }
-        .bar:nth-child(4) { animation-delay: 0.4s; height: 28px; }
-        .bar:nth-child(5) { animation-delay: 0.15s; height: 16px; }
-
-        @keyframes soundWave {
-            0% { transform: scaleY(0.3); }
-            100% { transform: scaleY(1.1); }
-        }
-
-        .paused-animation .bar {
-            animation-play-state: paused !important;
-            opacity: 0.5;
-        }
-        
-        input[type=range] {
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 12px;
-            width: 12px;
-            border-radius: 50%;
-            background: #a855f7;
-            cursor: pointer;
-            margin-top: -4px;
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #334155;
-            border-radius: 2px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Supabase Audio Library</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="min-h-screen flex flex-col pb-32">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-32">
 
-    <!-- HIDDEN FILE INPUT FOR CUSTOM AUDIO UPLOADS -->
-    <input type="file" id="global-audio-uploader" accept="audio/*" class="hidden" onchange="handleFileSelect(event)">
-
-    <header class="sticky top-0 z-40 glass-nav transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('store')">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                        <i class="fa-solid font-bold fa-compact-disc text-white text-xl animate-spin" style="animation-duration: 8s;"></i>
-                    </div>
-                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
-                        Sound<span class="text-indigo-400">Wave</span>
-                    </span>
-                </div>
-
-                <!-- Navigation Links -->
-                <nav class="hidden md:flex items-center space-x-1">
-                    <button id="nav-store" onclick="switchTab('store')" class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600/30 border border-indigo-500/30 flex items-center space-x-2 transition-all">
-                        <i class="fa-solid fa-store text-indigo-400"></i>
-                        <span>Store</span>
-                    </button>
-                    <button id="nav-offline" onclick="switchTab('offline')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center space-x-2 transition-all">
-                        <i class="fa-solid fa-download text-emerald-400"></i>
-                        <span>Offline Library</span>
-                        <span id="offline-badge" class="ml-1 px-1.5 py-0.5 text-xs bg-emerald-500/20 text-emerald-300 rounded-full hidden">0</span>
-                    </button>
-                    <button id="nav-favorites" onclick="switchTab('favorites')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center space-x-2 transition-all">
-                        <i class="fa-solid fa-heart text-rose-400"></i>
-                        <span>Favorites</span>
-                    </button>
-                    <button id="nav-playlists" onclick="switchTab('playlists')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center space-x-2 transition-all">
-                        <i class="fa-solid fa-list-ul text-purple-400"></i>
-                        <span>Playlists</span>
-                    </button>
-                </nav>
-
-                <!-- Search Bar & Upload Button -->
-                <div class="flex items-center space-x-3">
-                    <button onclick="triggerAudioUpload()" class="hidden sm:flex items-center space-x-2 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs rounded-full shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span>Upload Track</span>
-                    </button>
-
-                    <div class="relative w-36 sm:w-56">
-                        <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="Search songs..." class="w-full bg-slate-800/80 text-xs sm:text-sm text-slate-200 pl-9 pr-4 py-2 rounded-full border border-slate-700/60 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs sm:text-sm"></i>
-                    </div>
-                </div>
-            </div>
+  <!-- HEADER & NAVBAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-40 px-6 py-4 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-black text-lg">
+          ♪
         </div>
+        <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-300 bg-clip-text text-transparent">
+          Audio Vault
+        </h1>
+      </div>
 
-        <!-- Mobile Navigation Row -->
-        <div class="md:hidden flex justify-around py-2 border-t border-slate-800/80 bg-slate-900/90 text-xs">
-            <button onclick="switchTab('store')" class="flex flex-col items-center text-indigo-400 py-1">
-                <i class="fa-solid fa-store mb-1 text-sm"></i>Store
-            </button>
-            <button onclick="switchTab('offline')" class="flex flex-col items-center text-slate-400 py-1">
-                <i class="fa-solid fa-download mb-1 text-sm text-emerald-400"></i>Offline
-            </button>
-            <button onclick="switchTab('favorites')" class="flex flex-col items-center text-slate-400 py-1">
-                <i class="fa-solid fa-heart mb-1 text-sm text-rose-400"></i>Favorites
-            </button>
-            <button onclick="triggerAudioUpload()" class="flex flex-col items-center text-emerald-400 py-1">
-                <i class="fa-solid fa-cloud-arrow-up mb-1 text-sm"></i>Upload
-            </button>
-        </div>
-    </header>
+      <!-- Live Search Bar -->
+      <div class="w-full sm:w-72">
+        <input 
+          type="text" 
+          id="search-input" 
+          oninput="filterSongs()" 
+          placeholder="Search by title or artist..." 
+          class="w-full bg-slate-800 border border-slate-700/80 rounded-full px-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-all"
+        >
+      </div>
+    </div>
+  </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1">
+  <!-- MAIN CATALOG CONTENT -->
+  <main class="max-w-7xl mx-auto p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+      <div>
+        <h2 class="text-2xl font-black">All Tracks</h2>
+        <p class="text-xs text-slate-400">Stream or download audio directly from Supabase Storage.</p>
+      </div>
 
-        <!-- Notification Toast Container -->
-        <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
-
-        <!-- SECTION 1: STORE / HOME TAB -->
-        <section id="tab-store" class="tab-content space-y-8">
-            
-            <!-- Hero Banner / Featured Track Carousel -->
-            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 border border-slate-700/50 p-6 sm:p-10 shadow-2xl">
-                <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1200&q=80');"></div>
-                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div class="space-y-4 max-w-xl text-center md:text-left">
-                        <span class="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-block">
-                            <i class="fa-solid fa-fire mr-1"></i> Featured Track of the Week
-                        </span>
-                        <h1 class="text-3xl sm:text-5xl font-extrabold text-white leading-tight">Neon Horizons</h1>
-                        <p class="text-slate-300 text-sm sm:text-base">Experience synthetic synthwave soundscapes created on-the-fly. Listen, upload your own MP3s, download for offline access, and keep full ownership of your sound.</p>
-                        <div class="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
-                            <button onclick="playTrack(1)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold hover:shadow-lg hover:shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all flex items-center space-x-2">
-                                <i class="fa-solid fa-play"></i>
-                                <span>Play Preview</span>
-                            </button>
-                            <button onclick="triggerAudioUpload()" class="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold hover:scale-105 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-emerald-500/20">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Upload Audio File</span>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Album Cover Art Preview -->
-                    <div class="relative group">
-                        <div class="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl border-2 border-indigo-500/30 transform group-hover:scale-105 transition-all duration-300">
-                            <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=600&q=80" alt="Neon Horizons" class="w-full h-full object-cover">
-                        </div>
-                        <div class="absolute -bottom-3 -right-3 bg-emerald-500 text-slate-900 text-xs font-extrabold px-3 py-1 rounded-full shadow-lg">
-                            FREE DOWNLOAD
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Genre Selector Horizontal Slider -->
-            <div class="space-y-3">
-                <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
-                    <i class="fa-solid fa-shapes text-indigo-400"></i>
-                    <span>Explore Genres</span>
-                </h2>
-                <div class="flex space-x-3 overflow-x-auto pb-2 scrollbar-none" id="genre-container">
-                    <!-- Genres rendered dynamically -->
-                </div>
-            </div>
-
-            <!-- Main Song Grid Section -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
-                        <i class="fa-solid fa-music text-purple-400"></i>
-                        <span>Song Store Collection</span>
-                    </h2>
-                    <span id="results-count" class="text-xs text-slate-400 font-medium">Showing all tracks</span>
-                </div>
-
-                <!-- Song Grid Container -->
-                <div id="songs-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <!-- Songs dynamically rendered here -->
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 2: OFFLINE LIBRARY TAB -->
-        <section id="tab-offline" class="tab-content space-y-6 hidden">
-            <div class="glass-panel p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-emerald-500/20">
-                <div class="space-y-1">
-                    <h2 class="text-2xl font-bold text-white flex items-center space-x-2">
-                        <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                        <span>Offline Music Storage</span>
-                    </h2>
-                    <p class="text-sm text-slate-400">Tracks downloaded here are cached locally in IndexedDB and can be played even without network connection.</p>
-                </div>
-                <button onclick="clearOfflineStorage()" class="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl border border-rose-500/30 transition-all self-start sm:self-auto">
-                    <i class="fa-solid fa-trash mr-1"></i> Clear Local Cache
-                </button>
-            </div>
-
-            <div id="offline-empty" class="text-center py-16 glass-panel rounded-2xl space-y-3">
-                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl">
-                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                </div>
-                <h3 class="text-lg font-bold text-slate-200">No Offline Tracks Saved Yet</h3>
-                <p class="text-slate-400 text-sm max-w-md mx-auto">Click the download button <i class="fa-solid fa-download text-emerald-400 mx-1"></i> on any track in the store to store audio files directly in your browser storage.</p>
-                <button onclick="switchTab('store')" class="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl text-sm transition-all">
-                    Browse Music Store
-                </button>
-            </div>
-
-            <div id="offline-songs-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 hidden">
-                <!-- Offline items loaded here -->
-            </div>
-        </section>
-
-        <!-- SECTION 3: FAVORITES TAB -->
-        <section id="tab-favorites" class="tab-content space-y-6 hidden">
-            <div class="glass-panel p-6 rounded-2xl border-rose-500/20">
-                <h2 class="text-2xl font-bold text-white flex items-center space-x-2">
-                    <i class="fa-solid fa-heart text-rose-500"></i>
-                    <span>Favorite Songs</span>
-                </h2>
-                <p class="text-sm text-slate-400">Your personal selection of favorite synth and ambient tracks.</p>
-            </div>
-
-            <div id="favorites-empty" class="text-center py-16 glass-panel rounded-2xl space-y-3">
-                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto text-rose-400 text-2xl">
-                    <i class="fa-regular fa-heart"></i>
-                </div>
-                <h3 class="text-lg font-bold text-slate-200">Your Favorites is Empty</h3>
-                <p class="text-slate-400 text-sm">Heart tracks as you browse through the store to build your quick-access favorites list.</p>
-            </div>
-
-            <div id="favorites-songs-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 hidden">
-                <!-- Favorite songs loaded here -->
-            </div>
-        </section>
-
-        <!-- SECTION 4: PLAYLISTS TAB -->
-        <section id="tab-playlists" class="tab-content space-y-6 hidden">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-white">Your Playlists</h2>
-                    <p class="text-sm text-slate-400">Create and organize custom music playlists.</p>
-                </div>
-                <button onclick="openCreatePlaylistModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-medium text-sm transition-all flex items-center space-x-2">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Create Playlist</span>
-                </button>
-            </div>
-
-            <div id="playlists-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Playlists dynamically loaded here -->
-            </div>
-        </section>
-
-    </main>
-
-    <!-- PERSISTENT AUDIO PLAYER BAR -->
-    <div class="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-700/80 shadow-2xl px-4 py-3">
-        <!-- Hidden Standard HTML5 Audio Element for Direct File Playback -->
-        <audio id="native-audio-element" class="hidden"></audio>
-
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-            
-            <!-- Song Meta & Artwork -->
-            <div class="flex items-center space-x-3 w-full md:w-1/4">
-                <div class="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0 group cursor-pointer" onclick="openExpandedPlayer()">
-                    <img id="player-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                        <i class="fa-solid fa-expand text-white text-xs"></i>
-                    </div>
-                </div>
-                <div class="min-w-0 flex-1">
-                    <h4 id="player-title" class="text-sm font-bold text-slate-100 truncate">Select a Track</h4>
-                    <p id="player-artist" class="text-xs text-slate-400 truncate">SoundWave Studio</p>
-                </div>
-                <button id="player-fav-btn" onclick="toggleCurrentFavorite()" class="text-slate-500 hover:text-rose-400 text-sm p-2 transition-colors">
-                    <i class="fa-regular fa-heart"></i>
-                </button>
-            </div>
-
-            <!-- Controls & Progress Bar -->
-            <div class="flex flex-col items-center w-full md:w-2/4 space-y-1">
-                <div class="flex items-center space-x-4">
-                    <button id="shuffle-btn" onclick="toggleShuffle()" class="text-slate-400 hover:text-indigo-400 text-xs transition-colors" title="Shuffle">
-                        <i class="fa-solid fa-shuffle"></i>
-                    </button>
-                    <button onclick="playPrevTrack()" class="text-slate-300 hover:text-white text-base transition-colors" title="Previous">
-                        <i class="fa-solid fa-backward-step"></i>
-                    </button>
-                    <button id="main-play-btn" onclick="togglePlay()" class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all">
-                        <i class="fa-solid fa-play text-sm ml-0.5"></i>
-                    </button>
-                    <button onclick="playNextTrack()" class="text-slate-300 hover:text-white text-base transition-colors" title="Next">
-                        <i class="fa-solid fa-forward-step"></i>
-                    </button>
-                    <button id="loop-btn" onclick="toggleLoop()" class="text-slate-400 hover:text-indigo-400 text-xs transition-colors" title="Loop Track">
-                        <i class="fa-solid fa-repeat"></i>
-                    </button>
-                </div>
-
-                <div class="w-full flex items-center space-x-2 text-xs text-slate-400 font-mono">
-                    <span id="time-current">0:00</span>
-                    <div class="relative flex-1 flex items-center">
-                        <input type="range" id="seek-bar" min="0" max="100" value="0" oninput="handleSeek(this.value)" class="w-full">
-                    </div>
-                    <span id="time-duration">0:00</span>
-                </div>
-            </div>
-
-            <!-- Volume & Extra Tools -->
-            <div class="hidden md:flex items-center justify-end space-x-4 w-1/4">
-                <div id="visualizer-bars" class="flex items-end space-x-0.5 h-6 px-2 paused-animation" title="Audio Visualizer">
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                </div>
-
-                <button id="current-download-btn" onclick="downloadCurrentTrack()" class="text-slate-400 hover:text-emerald-400 text-sm transition-colors" title="Download current track">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-
-                <div class="flex items-center space-x-2">
-                    <button onclick="toggleMute()" class="text-slate-400 hover:text-slate-200 text-sm">
-                        <i id="volume-icon" class="fa-solid fa-volume-high"></i>
-                    </button>
-                    <input type="range" id="volume-bar" min="0" max="1" step="0.05" value="0.8" oninput="handleVolume(this.value)" class="w-20">
-                </div>
-            </div>
-
-        </div>
+      <!-- Genre Filter -->
+      <select id="genre-filter" onchange="filterSongs()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-indigo-500">
+        <option value="ALL">All Genres</option>
+      </select>
     </div>
 
-    <!-- EXPANDED PLAYER MODAL -->
-    <div id="expanded-player-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden flex-col justify-between p-6 sm:p-10 transition-all duration-300">
-        <div class="flex items-center justify-between">
-            <button onclick="closeExpandedPlayer()" class="text-slate-400 hover:text-white text-lg">
-                <i class="fa-solid fa-chevron-down mr-2"></i> Minimize
-            </button>
-            <span class="text-xs font-bold uppercase tracking-widest text-indigo-400">Now Playing</span>
-            <div class="w-8"></div>
-        </div>
-
-        <div class="max-w-md mx-auto w-full flex flex-col items-center space-y-6 my-auto">
-            <div class="w-64 h-64 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl border-2 border-indigo-500/20 relative">
-                <img id="expanded-cover" src="" class="w-full h-full object-cover">
-            </div>
-            <div class="text-center space-y-1">
-                <h2 id="expanded-title" class="text-2xl font-extrabold text-white">Song Title</h2>
-                <p id="expanded-artist" class="text-indigo-400 text-sm font-medium">Artist Name</p>
-            </div>
-        </div>
-
-        <div class="max-w-md mx-auto w-full space-y-4">
-            <div class="flex justify-between items-center text-slate-400 text-xs">
-                <button onclick="downloadCurrentTrack()" class="flex items-center space-x-1 hover:text-emerald-400">
-                    <i class="fa-solid fa-download"></i>
-                    <span>Download for Offline</span>
-                </button>
-                <button id="expanded-fav-btn" onclick="toggleCurrentFavorite()" class="flex items-center space-x-1 hover:text-rose-400">
-                    <i class="fa-regular fa-heart"></i>
-                    <span>Favorite</span>
-                </button>
-            </div>
-        </div>
+    <!-- Dynamic Songs Grid -->
+    <div id="songs-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <p class="text-slate-500 text-xs col-span-full">Connecting to Supabase...</p>
     </div>
+  </main>
 
-    <!-- CREATE PLAYLIST MODAL -->
-    <div id="create-playlist-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-md rounded-2xl p-6 space-y-4 border border-slate-700">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-white">Create New Playlist</h3>
-                <button onclick="closeCreatePlaylistModal()" class="text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-slate-400 font-semibold uppercase">Playlist Title</label>
-                    <input type="text" id="playlist-name-input" placeholder="My Chill Vibes" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-                </div>
-            </div>
-            <div class="flex justify-end space-x-3 pt-2">
-                <button onclick="closeCreatePlaylistModal()" class="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
-                <button onclick="saveNewPlaylist()" class="px-5 py-2 text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all">Create</button>
-            </div>
+  <!-- PERSISTENT BOTTOM PLAYER -->
+  <div id="player-bar" class="hidden fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800/80 p-4 z-50 backdrop-blur-xl shadow-2xl">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      
+      <!-- Currently Playing Metadata -->
+      <div class="flex items-center space-x-3 w-full sm:w-1/3">
+        <img id="player-cover" src="" class="w-12 h-12 rounded-xl object-cover bg-slate-800 border border-slate-700/50">
+        <div class="min-w-0">
+          <h4 id="player-title" class="font-bold text-sm text-white truncate">Track Title</h4>
+          <p id="player-artist" class="text-xs text-slate-400 truncate">Artist Name</p>
         </div>
+      </div>
+
+      <!-- HTML5 Audio Controls -->
+      <div class="w-full sm:w-2/3">
+        <audio id="main-audio" controls autoplay class="w-full rounded-lg"></audio>
+      </div>
     </div>
+  </div>
 
-    <script>
-        /* ----------------------------------------------------
-           1. MOCK SONG STORE DATA & STATE MANAGEMENT
-        ---------------------------------------------------- */
-        const SONG_STORE = [
-            {
-                id: 1,
-                title: "Neon Horizons",
-                artist: "CyberPulse",
-                genre: "Electronic",
-                duration: 180,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 120,
-                baseFreq: 220,
-                synthType: 'sawtooth'
-            },
-            {
-                id: 2,
-                title: "Midnight Drive",
-                artist: "Aura Beat",
-                genre: "Lo-Fi",
-                duration: 150,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 85,
-                baseFreq: 174,
-                synthType: 'sine'
-            },
-            {
-                id: 3,
-                title: "Starlight Chill",
-                artist: "Luna Sol",
-                genre: "Ambient",
-                duration: 210,
-                price: "$0.99",
-                cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 70,
-                baseFreq: 130,
-                synthType: 'triangle'
-            },
-            {
-                id: 4,
-                title: "Electric Pulse",
-                artist: "HyperDrive",
-                genre: "Pop",
-                duration: 165,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 128,
-                baseFreq: 261,
-                synthType: 'square'
-            },
-            {
-                id: 5,
-                title: "Acoustic Sunset",
-                artist: "Maya Lin",
-                genre: "Acoustic",
-                duration: 195,
-                price: "Free",
-                cover: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 95,
-                baseFreq: 196,
-                synthType: 'sine'
-            },
-            {
-                id: 6,
-                title: "Velvet Groove",
-                artist: "Smooth Quartet",
-                genre: "Jazz",
-                duration: 220,
-                price: "$1.29",
-                cover: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=600&q=80",
-                url: null,
-                bpm: 105,
-                baseFreq: 246,
-                synthType: 'triangle'
-            }
-        ];
+  <script>
+    // ==========================================
+    // 1. SUPABASE CREDENTIALS CONFIGURATION
+    // ==========================================
+    const SUPABASE_URL = "https://itbwruwdmmkedvvfxjsc.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0YndydXdkbW1rZWR2dmZ4anNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTYwMjYsImV4cCI6MjEwNjE5MjAyNn0.MkxWwr2ve_t7ZmiUnTG_UzQgMuMqJnGbtOXhIvKzlWg";
 
-        const GENRES = ["All", "Electronic", "Lo-Fi", "Ambient", "Pop", "Acoustic", "Jazz", "Custom Uploads"];
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let allSongs = [];
 
-        let currentActiveTab = 'store';
-        let selectedGenre = 'All';
-        let searchQuery = '';
-        
-        let currentTrackIndex = 0;
-        let isPlaying = false;
-        let isShuffle = false;
-        let isLoop = false;
-        let volume = 0.8;
+    // Fetch songs on startup
+    window.addEventListener('DOMContentLoaded', fetchSongs);
 
-        let favorites = JSON.parse(localStorage.getItem('sw_favorites') || '[]');
-        let offlineTracks = JSON.parse(localStorage.getItem('sw_offline') || '[]');
-        let playlists = JSON.parse(localStorage.getItem('sw_playlists') || '[{"id": 1, "name": "Favorites Mix", "songs": [1, 2]}]');
+    // ==========================================
+    // 2. FETCH AUDIO RECORDS FROM SUPABASE
+    // ==========================================
+    async function fetchSongs() {
+      const grid = document.getElementById('songs-grid');
 
-        /* ----------------------------------------------------
-           2. AUDIO PLAYBACK & SYNTHESIZER ENGINE
-        ---------------------------------------------------- */
-        let audioCtx = null;
-        let currentSourceNode = null;
-        let gainNode = null;
-        let playbackStartTime = 0;
-        let playbackOffset = 0;
-        let timerInterval = null;
-        let nativeAudio = null;
+      try {
+        const { data: songs, error } = await db
+          .from('songs')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        function initAudioContext() {
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            if (!nativeAudio) {
-                nativeAudio = document.getElementById('native-audio-element');
-                nativeAudio.addEventListener('ended', () => {
-                    if (isLoop) {
-                        startPlayback(0);
-                    } else {
-                        playNextTrack();
-                    }
-                });
-            }
+        if (error) throw error;
+
+        if (!songs || songs.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-12 border border-dashed border-slate-800 rounded-3xl">
+              <p class="text-slate-400 text-sm font-semibold">No audio files found in database.</p>
+              <p class="text-xs text-slate-600 mt-1">Make sure you uploaded records to the "songs" table.</p>
+            </div>`;
+          return;
         }
 
-        function triggerAudioUpload() {
-            document.getElementById('global-audio-uploader').click();
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const objectUrl = URL.createObjectURL(file);
-            const cleanName = file.name.replace(/\.[^/.]+$/, "");
-
-            const newTrack = {
-                id: Date.now(),
-                title: cleanName,
-                artist: "Custom Upload",
-                genre: "Custom Uploads",
-                duration: 180,
-                price: "User Track",
-                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80",
-                url: objectUrl,
-                isFileUpload: true
-            };
-
-            SONG_STORE.unshift(newTrack);
-            renderStoreGrid();
-            showToast(`Uploaded "${cleanName}" successfully!`, 'success');
-            playTrack(newTrack.id);
-        }
-
-        function createProceduralAudioBuffer(track) {
-            initAudioContext();
-            const sampleRate = audioCtx.sampleRate;
-            const duration = track.duration;
-            const buffer = audioCtx.createBuffer(2, sampleRate * duration, sampleRate);
-            
-            const leftChannel = buffer.getChannelData(0);
-            const rightChannel = buffer.getChannelData(1);
-
-            const bpm = track.bpm || 120;
-            const beatDuration = 60 / bpm;
-            const baseFreq = track.baseFreq || 220;
-
-            const scale = [1, 1.2, 1.334, 1.5, 1.782, 2];
-
-            for (let i = 0; i < buffer.length; i++) {
-                const t = i / sampleRate;
-                const beat = Math.floor(t / beatDuration);
-                const beatProgress = (t % beatDuration) / beatDuration;
-
-                const noteIndex = (beat * 3 + Math.floor(beat / 4)) % scale.length;
-                const freq = baseFreq * scale[noteIndex];
-                
-                let synthVal = 0;
-                if (track.synthType === 'sawtooth') {
-                    synthVal = (2 * (t * freq - Math.floor(t * freq + 0.5)));
-                } else if (track.synthType === 'square') {
-                    synthVal = Math.sin(2 * Math.PI * freq * t) >= 0 ? 0.4 : -0.4;
-                } else if (track.synthType === 'triangle') {
-                    synthVal = Math.asin(Math.sin(2 * Math.PI * freq * t)) * (2 / Math.PI);
-                } else {
-                    synthVal = Math.sin(2 * Math.PI * freq * t);
-                }
-
-                const envelope = Math.exp(-beatProgress * 3);
-                const kickEnv = Math.exp(-beatProgress * 15);
-                const kick = Math.sin(2 * Math.PI * 60 * (1 - beatProgress) * t) * kickEnv * 0.5;
-
-                const sample = (synthVal * envelope * 0.2) + (kick * 0.3);
-
-                leftChannel[i] = sample + Math.sin(t * 0.5) * 0.05;
-                rightChannel[i] = sample + Math.cos(t * 0.5) * 0.05;
-            }
-
-            return buffer;
-        }
-
-        /* ----------------------------------------------------
-           3. AUDIO PLAYER LOGIC
-        ---------------------------------------------------- */
-        function playTrack(trackId) {
-            const index = SONG_STORE.findIndex(s => s.id === trackId);
-            if (index !== -1) {
-                currentTrackIndex = index;
-                startPlayback(0);
-            }
-        }
-
-        function startPlayback(offset = 0) {
-            initAudioContext();
-            stopCurrentAudio();
-
-            const track = SONG_STORE[currentTrackIndex];
-
-            if (track.url) {
-                nativeAudio.src = track.url;
-                nativeAudio.volume = volume;
-                nativeAudio.currentTime = offset;
-                nativeAudio.play();
-                isPlaying = true;
-            } else {
-                const buffer = createProceduralAudioBuffer(track);
-                currentSourceNode = audioCtx.createBufferSource();
-                currentSourceNode.buffer = buffer;
-
-                gainNode = audioCtx.createGain();
-                gainNode.gain.value = volume;
-
-                currentSourceNode.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                currentSourceNode.start(0, offset);
-                playbackStartTime = audioCtx.currentTime - offset;
-                playbackOffset = offset;
-
-                isPlaying = true;
-
-                currentSourceNode.onended = () => {
-                    if (isPlaying && (audioCtx.currentTime - playbackStartTime) >= track.duration) {
-                        if (isLoop) {
-                            startPlayback(0);
-                        } else {
-                            playNextTrack();
-                        }
-                    }
-                };
-            }
-
-            updatePlayerUI();
-            startTimer();
-        }
-
-        function stopCurrentAudio() {
-            if (currentSourceNode) {
-                try {
-                    currentSourceNode.stop();
-                    currentSourceNode.disconnect();
-                } catch(e){}
-                currentSourceNode = null;
-            }
-            if (nativeAudio) {
-                nativeAudio.pause();
-            }
-            if (timerInterval) clearInterval(timerInterval);
-        }
-
-        function togglePlay() {
-            const track = SONG_STORE[currentTrackIndex];
-
-            if (!isPlaying) {
-                if (track.url) {
-                    nativeAudio.play();
-                    isPlaying = true;
-                } else {
-                    if (!currentSourceNode) {
-                        startPlayback(playbackOffset);
-                    } else {
-                        audioCtx.resume();
-                        isPlaying = true;
-                    }
-                }
-                startTimer();
-            } else {
-                if (track.url) {
-                    nativeAudio.pause();
-                } else if (audioCtx) {
-                    playbackOffset = audioCtx.currentTime - playbackStartTime;
-                    audioCtx.suspend();
-                }
-                isPlaying = false;
-                if (timerInterval) clearInterval(timerInterval);
-            }
-            updatePlayerUI();
-        }
-
-        function playNextTrack() {
-            if (isShuffle) {
-                currentTrackIndex = Math.floor(Math.random() * SONG_STORE.length);
-            } else {
-                currentTrackIndex = (currentTrackIndex + 1) % SONG_STORE.length;
-            }
-            startPlayback(0);
-        }
-
-        function playPrevTrack() {
-            currentTrackIndex = (currentTrackIndex - 1 + SONG_STORE.length) % SONG_STORE.length;
-            startPlayback(0);
-        }
-
-        function handleSeek(percent) {
-            const track = SONG_STORE[currentTrackIndex];
-            const targetDuration = track.url ? nativeAudio.duration || track.duration : track.duration;
-            const targetTime = (percent / 100) * targetDuration;
-
-            if (track.url) {
-                nativeAudio.currentTime = targetTime;
-            } else {
-                if (isPlaying) {
-                    startPlayback(targetTime);
-                } else {
-                    playbackOffset = targetTime;
-                    document.getElementById('time-current').innerText = formatTime(targetTime);
-                }
-            }
-        }
-
-        function handleVolume(val) {
-            volume = parseFloat(val);
-            if (gainNode) {
-                gainNode.gain.value = volume;
-            }
-            if (nativeAudio) {
-                nativeAudio.volume = volume;
-            }
-            const icon = document.getElementById('volume-icon');
-            if (volume === 0) icon.className = "fa-solid fa-volume-xmark";
-            else if (volume < 0.5) icon.className = "fa-solid fa-volume-low";
-            else icon.className = "fa-solid fa-volume-high";
-        }
-
-        function toggleMute() {
-            const volBar = document.getElementById('volume-bar');
-            if (volBar.value > 0) {
-                volBar.dataset.lastVol = volBar.value;
-                volBar.value = 0;
-            } else {
-                volBar.value = volBar.dataset.lastVol || 0.8;
-            }
-            handleVolume(volBar.value);
-        }
-
-        function toggleShuffle() {
-            isShuffle = !isShuffle;
-            document.getElementById('shuffle-btn').classList.toggle('text-indigo-400', isShuffle);
-            showToast(isShuffle ? "Shuffle Mode ON" : "Shuffle Mode OFF");
-        }
-
-        function toggleLoop() {
-            isLoop = !isLoop;
-            document.getElementById('loop-btn').classList.toggle('text-indigo-400', isLoop);
-            showToast(isLoop ? "Loop Current Track ON" : "Loop OFF");
-        }
-
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (isPlaying) {
-                    const track = SONG_STORE[currentTrackIndex];
-                    let elapsed = 0;
-                    let dur = track.duration;
-
-                    if (track.url && nativeAudio) {
-                        elapsed = nativeAudio.currentTime;
-                        dur = nativeAudio.duration || track.duration;
-                    } else if (audioCtx) {
-                        elapsed = audioCtx.currentTime - playbackStartTime;
-                    }
-
-                    if (elapsed <= dur) {
-                        document.getElementById('time-current').innerText = formatTime(elapsed);
-                        document.getElementById('time-duration').innerText = formatTime(dur);
-                        document.getElementById('seek-bar').value = (elapsed / dur) * 100;
-                    }
-                }
-            }, 500);
-        }
-
-        function formatTime(secs) {
-            if (isNaN(secs)) return "0:00";
-            const m = Math.floor(secs / 60);
-            const s = Math.floor(secs % 60);
-            return `${m}:${s < 10 ? '0' : ''}${s}`;
-        }
-
-        /* ----------------------------------------------------
-           4. DOWNLOAD & EXPORT ENGINE
-        ---------------------------------------------------- */
-        function downloadTrack(trackId) {
-            const track = SONG_STORE.find(s => s.id === trackId);
-            if (!track) return;
-
-            if (track.url) {
-                const anchor = document.createElement('a');
-                anchor.href = track.url;
-                anchor.download = `${track.artist} - ${track.title}.mp3`;
-                anchor.click();
-            } else {
-                showToast(`Generating WAV file for "${track.title}"...`);
-                setTimeout(() => {
-                    initAudioContext();
-                    const buffer = createProceduralAudioBuffer(track);
-                    const wavBlob = audioBufferToWavBlob(buffer);
-
-                    const url = URL.createObjectURL(wavBlob);
-                    const anchor = document.createElement('a');
-                    anchor.href = url;
-                    anchor.download = `${track.artist} - ${track.title}.wav`;
-                    anchor.click();
-                    URL.revokeObjectURL(url);
-                }, 300);
-            }
-
-            if (!offlineTracks.includes(track.id)) {
-                offlineTracks.push(track.id);
-                localStorage.setItem('sw_offline', JSON.stringify(offlineTracks));
-                renderOfflineSongs();
-                updateBadgeCount();
-            }
-
-            showToast(`Downloaded "${track.title}" for offline playback!`, 'success');
-        }
-
-        function downloadCurrentTrack() {
-            const track = SONG_STORE[currentTrackIndex];
-            downloadTrack(track.id);
-        }
-
-        function audioBufferToWavBlob(buffer) {
-            const numOfChan = buffer.numberOfChannels;
-            const length = buffer.length * numOfChan * 2 + 44;
-            const outBuffer = new DataView(new ArrayBuffer(length));
-            const channels = [];
-            let sample = 0;
-            let pos = 0;
-
-            function setUint16(data) { outBuffer.setUint16(pos, data, true); pos += 2; }
-            function setUint32(data) { outBuffer.setUint32(pos, data, true); pos += 4; }
-
-            setUint32(0x46464952);
-            setUint32(length - 8);
-            setUint32(0x45564157);
-            setUint32(0x20746d66);
-            setUint32(16);
-            setUint16(1);
-            setUint16(numOfChan);
-            setUint32(buffer.sampleRate);
-            setUint32(buffer.sampleRate * 2 * numOfChan);
-            setUint16(numOfChan * 2);
-            setUint16(16);
-            setUint32(0x61746164);
-            setUint32(length - pos - 4);
-
-            for (let i = 0; i < buffer.numberOfChannels; i++) {
-                channels.push(buffer.getChannelData(i));
-            }
-
-            let offset = 0;
-            while (offset < buffer.length) {
-                for (let i = 0; i < numOfChan; i++) {
-                    sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-                    outBuffer.setInt16(pos, sample, true);
-                    pos += 2;
-                }
-                offset++;
-            }
-
-            return new Blob([outBuffer], { type: 'audio/wav' });
-        }
-
-        /* ----------------------------------------------------
-           5. UI RENDERING & TAB SWITCHING
-        ---------------------------------------------------- */
-        function switchTab(tabId) {
-            currentActiveTab = tabId;
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            ['store', 'offline', 'favorites', 'playlists'].forEach(t => {
-                const btn = document.getElementById(`nav-${t}`);
-                if (btn) {
-                    if (t === tabId) {
-                        btn.className = "px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600/30 border border-indigo-500/30 flex items-center space-x-2 transition-all";
-                    } else {
-                        btn.className = "px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center space-x-2 transition-all";
-                    }
-                }
-            });
-
-            if (tabId === 'offline') renderOfflineSongs();
-            if (tabId === 'favorites') renderFavoriteSongs();
-            if (tabId === 'playlists') renderPlaylists();
-        }
-
-        function renderGenres() {
-            const container = document.getElementById('genre-container');
-            container.innerHTML = GENRES.map(genre => `
-                <button onclick="filterByGenre('${genre}')" class="px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                    selectedGenre === genre 
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/50'
-                }">
-                    ${genre}
-                </button>
-            `).join('');
-        }
-
-        function filterByGenre(genre) {
-            selectedGenre = genre;
-            renderGenres();
-            renderStoreGrid();
-        }
-
-        function handleSearch() {
-            searchQuery = document.getElementById('search-input').value.toLowerCase();
-            renderStoreGrid();
-        }
-
-        function renderStoreGrid() {
-            const grid = document.getElementById('songs-grid');
-            const filtered = SONG_STORE.filter(song => {
-                const matchesGenre = selectedGenre === 'All' || song.genre === selectedGenre;
-                const matchesSearch = song.title.toLowerCase().includes(searchQuery) || song.artist.toLowerCase().includes(searchQuery);
-                return matchesGenre && matchesSearch;
-            });
-
-            document.getElementById('results-count').innerText = `Showing ${filtered.length} tracks`;
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-slate-400">
-                        <i class="fa-solid fa-circle-exclamation text-3xl mb-2 text-indigo-400"></i>
-                        <p>No tracks match your current filter.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            grid.innerHTML = filtered.map(song => createSongCardHTML(song)).join('');
-        }
-
-        function createSongCardHTML(song) {
-            const isFav = favorites.includes(song.id);
-            const isOffline = offlineTracks.includes(song.id);
-            const isCurrentPlaying = SONG_STORE[currentTrackIndex]?.id === song.id && isPlaying;
-
-            return `
-                <div class="glass-panel rounded-2xl p-4 transition-all duration-300 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/10 group flex flex-col justify-between">
-                    <div>
-                        <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-slate-800">
-                            <img src="${song.cover}" alt="${song.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300">
-                            
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                <button onclick="playTrack(${song.id})" class="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 active:scale-95 transition-all">
-                                    <i class="fa-solid ${isCurrentPlaying ? 'fa-pause' : 'fa-play'} ml-0.5"></i>
-                                </button>
-                            </div>
-
-                            <div class="absolute top-2 left-2 flex space-x-1">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-900/80 text-indigo-300 border border-slate-700 backdrop-blur-md">
-                                    ${song.genre}
-                                </span>
-                            </div>
-
-                            ${isOffline ? `
-                                <div class="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/90 text-slate-900 shadow">
-                                    <i class="fa-solid fa-check mr-1"></i>Offline
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="flex items-start justify-between">
-                            <div class="min-w-0 flex-1 pr-2">
-                                <h3 class="font-bold text-slate-100 truncate text-base hover:text-indigo-400 cursor-pointer" onclick="playTrack(${song.id})">${song.title}</h3>
-                                <p class="text-xs text-slate-400 truncate">${song.artist}</p>
-                            </div>
-                            <button onclick="toggleFavorite(${song.id})" class="text-slate-400 hover:text-rose-400 transition-colors">
-                                <i class="fa-${isFav ? 'solid text-rose-500' : 'regular'} fa-heart"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                        <span class="font-semibold text-emerald-400">${song.price}</span>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="downloadTrack(${song.id})" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600/20 hover:text-emerald-400 border border-slate-700 text-slate-300 font-medium transition-all flex items-center space-x-1">
-                                <i class="fa-solid fa-download"></i>
-                                <span>Save</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        /* ----------------------------------------------------
-           6. FAVORITES, OFFLINE & PLAYLISTS
-        ---------------------------------------------------- */
-        function toggleFavorite(id) {
-            if (favorites.includes(id)) {
-                favorites = favorites.filter(f => f !== id);
-                showToast("Removed from Favorites");
-            } else {
-                favorites.push(id);
-                showToast("Added to Favorites", 'success');
-            }
-            localStorage.setItem('sw_favorites', JSON.stringify(favorites));
-            renderStoreGrid();
-            if (currentActiveTab === 'favorites') renderFavoriteSongs();
-            updatePlayerUI();
-        }
-
-        function toggleCurrentFavorite() {
-            const track = SONG_STORE[currentTrackIndex];
-            if (track) toggleFavorite(track.id);
-        }
-
-        function renderFavoriteSongs() {
-            const grid = document.getElementById('favorites-songs-grid');
-            const empty = document.getElementById('favorites-empty');
-            const favTracks = SONG_STORE.filter(s => favorites.includes(s.id));
-
-            if (favTracks.length === 0) {
-                grid.classList.add('hidden');
-                empty.classList.remove('hidden');
-            } else {
-                empty.classList.add('hidden');
-                grid.classList.remove('hidden');
-                grid.innerHTML = favTracks.map(song => createSongCardHTML(song)).join('');
-            }
-        }
-
-        function renderOfflineSongs() {
-            const grid = document.getElementById('offline-songs-grid');
-            const empty = document.getElementById('offline-empty');
-            const savedTracks = SONG_STORE.filter(s => offlineTracks.includes(s.id));
-
-            if (savedTracks.length === 0) {
-                grid.classList.add('hidden');
-                empty.classList.remove('hidden');
-            } else {
-                empty.classList.add('hidden');
-                grid.classList.remove('hidden');
-                grid.innerHTML = savedTracks.map(song => createSongCardHTML(song)).join('');
-            }
-        }
-
-        function clearOfflineStorage() {
-            offlineTracks = [];
-            localStorage.removeItem('sw_offline');
-            renderOfflineSongs();
-            updateBadgeCount();
-            showToast("Offline local storage cleared.");
-        }
-
-        function updateBadgeCount() {
-            const badge = document.getElementById('offline-badge');
-            if (offlineTracks.length > 0) {
-                badge.innerText = offlineTracks.length;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        function renderPlaylists() {
-            const container = document.getElementById('playlists-list');
-            container.innerHTML = playlists.map(pl => `
-                <div class="glass-panel rounded-2xl p-5 space-y-4 border border-purple-500/20">
-                    <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-lg text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-music text-purple-400"></i>
-                            <span>${pl.name}</span>
-                        </h3>
-                        <span class="text-xs text-slate-400">${pl.songs.length} Tracks</span>
-                    </div>
-                    <div class="space-y-2">
-                        ${pl.songs.map(songId => {
-                            const song = SONG_STORE.find(s => s.id === songId);
-                            if (!song) return '';
-                            return `
-                                <div class="flex justify-between items-center text-xs bg-slate-900/60 p-2 rounded-lg">
-                                    <span class="font-medium text-slate-200 truncate">${song.title}</span>
-                                    <button onclick="playTrack(${song.id})" class="text-indigo-400 hover:text-indigo-300">
-                                        <i class="fa-solid fa-play"></i>
-                                    </button>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openCreatePlaylistModal() {
-            document.getElementById('create-playlist-modal').classList.remove('hidden');
-            document.getElementById('create-playlist-modal').classList.add('flex');
-        }
-
-        function closeCreatePlaylistModal() {
-            document.getElementById('create-playlist-modal').classList.add('hidden');
-            document.getElementById('create-playlist-modal').classList.remove('flex');
-        }
-
-        function saveNewPlaylist() {
-            const input = document.getElementById('playlist-name-input');
-            const name = input.value.trim();
-            if (!name) return;
-
-            playlists.push({
-                id: Date.now(),
-                name: name,
-                songs: [1, 3]
-            });
-
-            localStorage.setItem('sw_playlists', JSON.stringify(playlists));
-            input.value = '';
-            closeCreatePlaylistModal();
-            renderPlaylists();
-            showToast(`Created playlist "${name}"`, 'success');
-        }
-
-        /* ----------------------------------------------------
-           7. PLAYER UI & EXPANDED MODAL
-        ---------------------------------------------------- */
-        function updatePlayerUI() {
-            const track = SONG_STORE[currentTrackIndex];
-            if (!track) return;
-
-            document.getElementById('player-title').innerText = track.title;
-            document.getElementById('player-artist').innerText = track.artist;
-            document.getElementById('player-cover').src = track.cover;
-
-            document.getElementById('expanded-title').innerText = track.title;
-            document.getElementById('expanded-artist').innerText = track.artist;
-            document.getElementById('expanded-cover').src = track.cover;
-
-            const mainPlayBtn = document.getElementById('main-play-btn');
-            mainPlayBtn.innerHTML = `<i class="fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ml-0.5"></i>`;
-
-            const vizBars = document.getElementById('visualizer-bars');
-            if (isPlaying) {
-                vizBars.classList.remove('paused-animation');
-            } else {
-                vizBars.classList.add('paused-animation');
-            }
-
-            const isFav = favorites.includes(track.id);
-            const favIcon = `<i class="fa-${isFav ? 'solid text-rose-500' : 'regular'} fa-heart"></i>`;
-            document.getElementById('player-fav-btn').innerHTML = favIcon;
-            document.getElementById('expanded-fav-btn').innerHTML = favIcon + ' <span>Favorite</span>';
-        }
-
-        function openExpandedPlayer() {
-            document.getElementById('expanded-player-modal').classList.remove('hidden');
-            document.getElementById('expanded-player-modal').classList.add('flex');
-        }
-
-        function closeExpandedPlayer() {
-            document.getElementById('expanded-player-modal').classList.add('hidden');
-            document.getElementById('expanded-player-modal').classList.remove('flex');
-        }
-
-        /* ----------------------------------------------------
-           8. TOAST NOTIFICATIONS
-        ---------------------------------------------------- */
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const colorClass = type === 'success' 
-                ? 'bg-emerald-600/90 text-white border-emerald-400' 
-                : 'bg-indigo-600/90 text-white border-indigo-400';
-
-            toast.className = `px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xl backdrop-blur-md border ${colorClass} transition-all duration-300 opacity-0 transform translate-y-2 flex items-center space-x-2`;
-            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('opacity-0', 'translate-y-2');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        /* ----------------------------------------------------
-           9. INITIALIZATION
-        ---------------------------------------------------- */
-        window.onload = function() {
-            renderGenres();
-            renderStoreGrid();
-            updateBadgeCount();
-            updatePlayerUI();
-        };
-    </script>
+        allSongs = songs;
+        populateGenres(songs);
+        renderSongs(songs);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        grid.innerHTML = `<p class="text-rose-400 text-xs col-span-full">Failed to load audio tracks: ${err.message}</p>`;
+      }
+    }
+
+    // ==========================================
+    // 3. RENDER TRACK CARDS
+    // ==========================================
+    function renderSongs(songs) {
+      const grid = document.getElementById('songs-grid');
+      
+      if (songs.length === 0) {
+        grid.innerHTML = '<p class="text-slate-500 text-xs col-span-full">No matching tracks found.</p>';
+        return;
+      }
+
+      grid.innerHTML = songs.map(song => {
+        const cover = song.cover_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17';
+        return `
+          <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between hover:border-indigo-500/40 transition-all duration-200">
+            <div>
+              <div class="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-800">
+                <img src="${cover}" alt="${song.title}" class="w-full h-full object-cover">
+                ${song.genre ? `<span class="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-md text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded-md border border-slate-800">${song.genre}</span>` : ''}
+              </div>
+              <h3 class="font-bold text-slate-100 text-sm truncate">${song.title}</h3>
+              <p class="text-xs text-slate-400 truncate">${song.artist}</p>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+              <button 
+                onclick="playTrack('${escapeQuotes(song.title)}', '${escapeQuotes(song.artist)}', '${cover}', '${song.audio_url}')" 
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md hover:shadow-indigo-500/20"
+              >
+                Play
+              </button>
+              
+              <a 
+                href="${song.audio_url}" 
+                download 
+                target="_blank" 
+                class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/60 transition-all"
+              >
+                Download
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // 4. AUDIO PLAYER CONTROLLER
+    // ==========================================
+    function playTrack(title, artist, cover, url) {
+      document.getElementById('player-title').innerText = title;
+      document.getElementById('player-artist').innerText = artist;
+      document.getElementById('player-cover').src = cover;
+
+      const audio = document.getElementById('main-audio');
+      audio.src = url;
+      
+      document.getElementById('player-bar').classList.remove('hidden');
+    }
+
+    // ==========================================
+    // 5. SEARCH & FILTERING LOGIC
+    // ==========================================
+    function populateGenres(songs) {
+      const genres = ['ALL', ...new Set(songs.map(s => s.genre).filter(Boolean))];
+      const select = document.getElementById('genre-filter');
+      select.innerHTML = genres.map(g => `<option value="${g}">${g}</option>`).join('');
+    }
+
+    function filterSongs() {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const selectedGenre = document.getElementById('genre-filter').value;
+
+      const filtered = allSongs.filter(song => {
+        const matchesSearch = song.title.toLowerCase().includes(query) || song.artist.toLowerCase().includes(query);
+        const matchesGenre = selectedGenre === 'ALL' || song.genre === selectedGenre;
+        return matchesSearch && matchesGenre;
+      });
+
+      renderSongs(filtered);
+    }
+
+    function escapeQuotes(str) {
+      return (str || '').replace(/'/g, "\\'");
+    }
+  </script>
 </body>
 </html>
