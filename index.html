@@ -3,93 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Supabase Audio Library</title>
+  <title>መዝሙር</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-32">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
 
-  <!-- HEADER & NAVBAR -->
-  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-40 px-6 py-4 backdrop-blur-md">
+    /* Custom scrollbars for lyrics viewer */
+    .lyrics-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .lyrics-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .lyrics-scroll::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 9999px;
+    }
+    .lyrics-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-32 selection:bg-indigo-500 selection:text-white">
+
+  <header class="border-b border-slate-800/80 bg-slate-900/80 sticky top-0 z-40 px-6 py-4 backdrop-blur-md">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-black text-lg">
-          ♪
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-black text-lg shadow-lg shadow-indigo-500/20 text-white">
+          ሰ
         </div>
-        <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-300 bg-clip-text text-transparent">
-          Audio Vault
-        </h1>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-300 bg-clip-text text-transparent">
+            ሰንበት
+          </h1>
+          <p class="text-[10px] text-slate-400 font-medium tracking-wide">የኮተቤ ምካነ ቅዱሳን ኢያቄም ወሓና ወልድ ዋሕድ ሰንበት ት/ቤት</p>
+        </div>
       </div>
 
       <!-- Live Search Bar -->
-      <div class="w-full sm:w-72">
-        <input 
-          type="text" 
-          id="search-input" 
-          oninput="filterSongs()" 
-          placeholder="Search by title or artist..." 
-          class="w-full bg-slate-800 border border-slate-700/80 rounded-full px-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-all"
-        >
+      <div class="w-full sm:w-80">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-slate-400"></i>
+          <input 
+            type="text" 
+            id="search-input" 
+            oninput="filterSongs()" 
+            placeholder="Search title, artist, or lyrics..." 
+            class="w-full bg-slate-800/90 border border-slate-700/80 rounded-full pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+          >
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- MAIN CATALOG CONTENT -->
   <main class="max-w-7xl mx-auto p-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
       <div>
-        <h2 class="text-2xl font-black">All Tracks</h2>
-        <p class="text-xs text-slate-400">Stream or download audio directly from Supabase Storage.</p>
+        <h2 class="text-2xl font-black tracking-tight">Audio Tracks</h2>
+        <p class="text-xs text-slate-400">Stream tracks and view read-only lyrics directly in browser.</p>
       </div>
 
       <!-- Genre Filter -->
-      <select id="genre-filter" onchange="filterSongs()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-indigo-500">
-        <option value="ALL">All Genres</option>
-      </select>
+      <div class="flex items-center gap-2">
+        <label for="genre-filter" class="text-xs text-slate-400 font-medium">Genre:</label>
+        <select id="genre-filter" onchange="filterSongs()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:border-indigo-500">
+          <option value="ALL">All Genres</option>
+        </select>
+      </div>
     </div>
 
     <!-- Dynamic Songs Grid -->
     <div id="songs-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      <p class="text-slate-500 text-xs col-span-full">Connecting to Supabase...</p>
+      <div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+        <i class="fa-solid fa-spinner animate-spin text-2xl mb-3 text-indigo-400"></i>
+        <p class="text-xs font-medium">Connecting to Audio Library...</p>
+      </div>
     </div>
   </main>
 
-  <!-- PERSISTENT BOTTOM PLAYER -->
-  <div id="player-bar" class="hidden fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800/80 p-4 z-50 backdrop-blur-xl shadow-2xl">
+  <div id="player-bar" class="hidden fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800/80 p-4 z-40 backdrop-blur-xl shadow-2xl transition-all">
     <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
       
       <!-- Currently Playing Metadata -->
-      <div class="flex items-center space-x-3 w-full sm:w-1/3">
-        <img id="player-cover" src="" class="w-12 h-12 rounded-xl object-cover bg-slate-800 border border-slate-700/50">
+      <div class="flex items-center space-x-3 w-full sm:w-1/3 min-w-0">
+        <img id="player-cover" src="" class="w-12 h-12 rounded-xl object-cover bg-slate-800 border border-slate-700/50 shrink-0" alt="Cover">
         <div class="min-w-0">
           <h4 id="player-title" class="font-bold text-sm text-white truncate">Track Title</h4>
           <p id="player-artist" class="text-xs text-slate-400 truncate">Artist Name</p>
         </div>
       </div>
 
-      <!-- HTML5 Audio Controls -->
-      <div class="w-full sm:w-2/3">
-        <audio id="main-audio" controls autoplay class="w-full rounded-lg"></audio>
+      <!-- Audio Controls & Lyrics Modal Trigger -->
+      <div class="w-full sm:w-2/3 flex items-center gap-3">
+        <audio id="main-audio" controls autoplay class="w-full rounded-lg h-10"></audio>
+        <button 
+          id="player-lyrics-btn"
+          onclick="openLyricsModalCurrent()" 
+          class="shrink-0 px-3.5 py-2 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all flex items-center gap-2"
+        >
+          <i class="fa-solid fa-align-left"></i>
+          <span>View Lyrics</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="lyrics-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-slate-900 border border-slate-800/90 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60">
+        <div class="flex items-center space-x-3 min-w-0">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+            <i class="fa-solid fa-quote-right text-sm"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="lyrics-modal-title" class="font-bold text-sm text-slate-100 truncate">Song Title</h3>
+            <p id="lyrics-modal-artist" class="text-xs text-slate-400 truncate">Artist Name</p>
+          </div>
+        </div>
+        
+        <button onclick="closeLyricsModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div id="lyrics-view-container" class="p-6 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed font-sans min-h-[250px] max-h-[55vh] lyrics-scroll">
+        <p id="lyrics-content-display" class="select-text">Loading lyrics...</p>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-950/70 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-[10px] text-slate-600"></i> Read-only mode</span>
+        <span id="lyrics-status-badge" class="font-medium text-slate-400">Verified Lyrics</span>
       </div>
     </div>
   </div>
 
   <script>
-    // ==========================================
-    // 1. SUPABASE CREDENTIALS CONFIGURATION
-    // ==========================================
+    // -------------------------------------------------------------
+    // REPLACE THIS URL WITH YOUR PREFERRED FIXED COVER IMAGE URL
+    // -------------------------------------------------------------
+    const FIXED_COVER_IMAGE = "https://i.pinimg.com/1200x/4d/75/2d/4d752d6f6b46ac1e43880f2842f2ce53.jpg";
+
+    const localLyricsMap = {
+      "Awde Amet": `[ዐውደ ዓመት] 
+      ዐውደ ዓመት ለባርኮ ባርኮ ዐውደ ዓመት 
+      ንዒ ማርያም ለምሕረት ወሣህል 
+      
+      
+      [ትርጉም]
+      ዐውደ ዓመቱን ለመባረክ 
+      ለምሕረትና ለይቅርታ ማርያም ሆይ ነይ።`,
+
+      "Sample Grace Track": `[Intro]
+(Instrumental Soft Piano)
+
+[Verse 1]
+Light breaks through the morning skies,
+Hope is renewed before my eyes.
+A song of peace inside my soul,
+Making every broken moment whole.
+
+[Chorus]
+Forever faithful, forever true,
+Everything made fresh and new.`,
+
+      "Default Sample": `[Verse 1]
+Add your custom line 1 here
+Add your custom line 2 here
+
+[Chorus]
+Your chorus lines go here`
+    };
+
     const SUPABASE_URL = "https://itbwruwdmmkedvvfxjsc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0YndydXdkbW1rZWR2dmZ4anNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTYwMjYsImV4cCI6MjEwNjE5MjAyNn0.MkxWwr2ve_t7ZmiUnTG_UzQgMuMqJnGbtOXhIvKzlWg";
 
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
     let allSongs = [];
+    let activeSong = null;
 
-    // Fetch songs on startup
     window.addEventListener('DOMContentLoaded', fetchSongs);
 
-    // ==========================================
-    // 2. FETCH AUDIO RECORDS FROM SUPABASE
-    // ==========================================
     async function fetchSongs() {
       const grid = document.getElementById('songs-grid');
 
@@ -101,99 +207,184 @@
 
         if (error) throw error;
 
-        if (!songs || songs.length === 0) {
-          grid.innerHTML = `
-            <div class="col-span-full text-center py-12 border border-dashed border-slate-800 rounded-3xl">
-              <p class="text-slate-400 text-sm font-semibold">No audio files found in database.</p>
-              <p class="text-xs text-slate-600 mt-1">Make sure you uploaded records to the "songs" table.</p>
-            </div>`;
-          return;
+        let songData = songs;
+        if (!songData || songData.length === 0) {
+          songData = [
+            {
+              id: "1",
+              title: "Grace Like a River",
+              artist: "Vault Worship",
+              genre: "Acoustic",
+              audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+            },
+            {
+              id: "2",
+              title: "Sample Grace Track",
+              artist: "Horizon Ensemble",
+              genre: "Ambient",
+              audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+            }
+          ];
         }
 
-        allSongs = songs;
-        populateGenres(songs);
-        renderSongs(songs);
+        allSongs = songData.map(song => {
+          const embeddedLyrics = song.lyrics || localLyricsMap[String(song.id)] || localLyricsMap[song.title] || null;
+
+          return {
+            ...song,
+            lyrics: embeddedLyrics
+          };
+        });
+
+        populateGenres(allSongs);
+        renderSongs(allSongs);
       } catch (err) {
         console.error('Fetch error:', err);
-        grid.innerHTML = `<p class="text-rose-400 text-xs col-span-full">Failed to load audio tracks: ${err.message}</p>`;
+        if (grid) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center py-8 bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+              <p class="text-rose-400 text-xs font-semibold">Failed to load audio catalog: ${escapeHtml(err.message || 'Unknown error')}</p>
+            </div>`;
+        }
       }
     }
 
-    // ==========================================
-    // 3. RENDER TRACK CARDS
-    // ==========================================
     function renderSongs(songs) {
       const grid = document.getElementById('songs-grid');
       
+      if (!grid) return;
+
       if (songs.length === 0) {
-        grid.innerHTML = '<p class="text-slate-500 text-xs col-span-full">No matching tracks found.</p>';
+        grid.innerHTML = '<p class="text-slate-500 text-xs col-span-full py-8 text-center">No matching tracks found.</p>';
         return;
       }
 
       grid.innerHTML = songs.map(song => {
-        const cover = song.cover_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17';
+        // Enforce fixed cover image across all tracks
+        const cover = FIXED_COVER_IMAGE;
+        const hasLyrics = song.lyrics && song.lyrics.trim().length > 0;
+        const songIdStr = escapeHtml(String(song.id));
+
         return `
-          <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between hover:border-indigo-500/40 transition-all duration-200">
+          <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between hover:border-indigo-500/40 transition-all duration-200 group">
             <div>
               <div class="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-800">
-                <img src="${cover}" alt="${song.title}" class="w-full h-full object-cover">
-                ${song.genre ? `<span class="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-md text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded-md border border-slate-800">${song.genre}</span>` : ''}
+                <img src="${escapeHtml(cover)}" alt="${escapeHtml(song.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                ${song.genre ? `<span class="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-md text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded-md border border-slate-800">${escapeHtml(song.genre)}</span>` : ''}
+                
+                <button 
+                  data-song-id="${songIdStr}"
+                  onclick="openLyricsModal(this.getAttribute('data-song-id'))"
+                  title="${hasLyrics ? 'View Lyrics' : 'No Lyrics Attached'}"
+                  class="absolute top-2 right-2 w-7 h-7 rounded-lg ${hasLyrics ? 'bg-indigo-600/90 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-950/70 text-slate-500'} backdrop-blur-md flex items-center justify-center text-xs transition-all border border-slate-700/50"
+                >
+                  <i class="fa-solid fa-align-left"></i>
+                </button>
               </div>
-              <h3 class="font-bold text-slate-100 text-sm truncate">${song.title}</h3>
-              <p class="text-xs text-slate-400 truncate">${song.artist}</p>
+
+              <h3 class="font-bold text-slate-100 text-sm truncate">${escapeHtml(song.title)}</h3>
+              <p class="text-xs text-slate-400 truncate mb-1">${escapeHtml(song.artist)}</p>
             </div>
 
-            <div class="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+            <div class="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between gap-2">
               <button 
-                onclick="playTrack('${escapeQuotes(song.title)}', '${escapeQuotes(song.artist)}', '${cover}', '${song.audio_url}')" 
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md hover:shadow-indigo-500/20"
+                data-song-id="${songIdStr}"
+                onclick="playTrack(this.getAttribute('data-song-id'))" 
+                class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md hover:shadow-indigo-500/20 flex items-center justify-center gap-1.5"
               >
-                Play
+                <i class="fa-solid fa-play text-[10px]"></i>
+                <span>Play</span>
               </button>
-              
-              <a 
-                href="${song.audio_url}" 
-                download 
-                target="_blank" 
-                class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/60 transition-all"
+
+              <button 
+                data-song-id="${songIdStr}"
+                onclick="openLyricsModal(this.getAttribute('data-song-id'))" 
+                class="px-3 py-2 bg-slate-800 hover:bg-slate-700 ${hasLyrics ? 'text-indigo-300' : 'text-slate-400'} text-xs font-semibold rounded-xl border border-slate-700/60 transition-all flex items-center gap-1.5"
+                title="View Lyrics"
               >
-                Download
-              </a>
+                <i class="fa-solid fa-file-lines text-xs"></i>
+                <span>Lyrics</span>
+              </button>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // ==========================================
-    // 4. AUDIO PLAYER CONTROLLER
-    // ==========================================
-    function playTrack(title, artist, cover, url) {
-      document.getElementById('player-title').innerText = title;
-      document.getElementById('player-artist').innerText = artist;
-      document.getElementById('player-cover').src = cover;
+    function playTrack(songId) {
+      const song = allSongs.find(s => String(s.id) === String(songId));
+      if (!song) return;
+
+      activeSong = song;
+
+      document.getElementById('player-title').innerText = song.title || 'Untitled Track';
+      document.getElementById('player-artist').innerText = song.artist || 'Unknown Artist';
+      document.getElementById('player-cover').src = FIXED_COVER_IMAGE;
 
       const audio = document.getElementById('main-audio');
-      audio.src = url;
-      
+      audio.src = song.audio_url;
+
       document.getElementById('player-bar').classList.remove('hidden');
     }
 
-    // ==========================================
-    // 5. SEARCH & FILTERING LOGIC
-    // ==========================================
+    function openLyricsModalCurrent() {
+      if (activeSong) {
+        openLyricsModal(activeSong.id);
+      } else if (allSongs.length > 0) {
+        openLyricsModal(allSongs[0].id);
+      }
+    }
+
+    function openLyricsModal(songId) {
+      const song = allSongs.find(s => String(s.id) === String(songId));
+      if (!song) return;
+
+      activeSong = song;
+
+      document.getElementById('lyrics-modal-title').innerText = song.title || 'Untitled';
+      document.getElementById('lyrics-modal-artist').innerText = song.artist || 'Unknown Artist';
+      
+      const lyricsText = song.lyrics && song.lyrics.trim().length > 0 ? song.lyrics : null;
+
+      const displayElem = document.getElementById('lyrics-content-display');
+      const badgeElem = document.getElementById('lyrics-status-badge');
+
+      if (lyricsText) {
+        displayElem.innerText = lyricsText;
+        displayElem.className = "select-text text-slate-200";
+        badgeElem.innerText = "Lyrics Available";
+        badgeElem.className = "font-medium text-emerald-400";
+      } else {
+        displayElem.innerText = "No lyrics available for this track.";
+        displayElem.className = "select-text text-slate-500 italic text-center py-12";
+        badgeElem.innerText = "No Lyrics";
+        badgeElem.className = "font-medium text-slate-500";
+      }
+
+      document.getElementById('lyrics-modal').classList.remove('hidden');
+    }
+
+    function closeLyricsModal() {
+      document.getElementById('lyrics-modal').classList.add('hidden');
+    }
+
     function populateGenres(songs) {
       const genres = ['ALL', ...new Set(songs.map(s => s.genre).filter(Boolean))];
       const select = document.getElementById('genre-filter');
-      select.innerHTML = genres.map(g => `<option value="${g}">${g}</option>`).join('');
+      if (!select) return;
+      select.innerHTML = genres.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
     }
 
     function filterSongs() {
-      const query = document.getElementById('search-input').value.toLowerCase();
+      const query = (document.getElementById('search-input').value || '').toLowerCase();
       const selectedGenre = document.getElementById('genre-filter').value;
 
       const filtered = allSongs.filter(song => {
-        const matchesSearch = song.title.toLowerCase().includes(query) || song.artist.toLowerCase().includes(query);
+        const matchesSearch = 
+          (song.title && song.title.toLowerCase().includes(query)) || 
+          (song.artist && song.artist.toLowerCase().includes(query)) ||
+          (song.lyrics && song.lyrics.toLowerCase().includes(query));
+          
         const matchesGenre = selectedGenre === 'ALL' || song.genre === selectedGenre;
         return matchesSearch && matchesGenre;
       });
@@ -201,8 +392,14 @@
       renderSongs(filtered);
     }
 
-    function escapeQuotes(str) {
-      return (str || '').replace(/'/g, "\\'");
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
 </body>
